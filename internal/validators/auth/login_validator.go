@@ -1,0 +1,48 @@
+package authvalidators
+
+import (
+	"net/http"
+	dtos "objexrg-backend/internal/dtos/auth/input"
+
+	"objexrg-backend/internal/interfaces"
+	"objexrg-backend/internal/validators"
+
+	"github.com/go-playground/validator/v10"
+)
+
+type LoginValidator struct {
+	authRepo interfaces.Auth
+	validate *validator.Validate
+}
+
+func NewLoginValidator(authRepo interfaces.Auth) *LoginValidator {
+	v := validator.New()
+	return &LoginValidator{authRepo: authRepo, validate: v}
+}
+
+func (v *LoginValidator) Validate(input interface{}) validators.ValidationResult {
+	req, ok := input.(*dtos.LoginRequest)
+	if !ok {
+		return validators.ValidationResult{
+			IsValid:    false,
+			StatusCode: http.StatusInternalServerError,
+			Message:    "Invalid input type",
+		}
+	}
+
+	// Validar formato
+	if err := v.validate.Struct(req); err != nil {
+		return validators.ValidationResult{
+			IsValid:    false,
+			StatusCode: http.StatusUnprocessableEntity,
+			Message:    err.Error(),
+		}
+	}
+
+	// Para login, no validar existencia aquí, ya que eso se hace en servicio para credenciales inválidas
+	return validators.ValidationResult{
+		IsValid:    true,
+		StatusCode: http.StatusOK,
+		Message:    "",
+	}
+}

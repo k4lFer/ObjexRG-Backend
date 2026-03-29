@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: objexrg-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: prkal34
+      POSTGRES_DB: objexrg_credentials
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  objexrg-backend:
+    build: .
+    container_name: objexrg-backend
+    ports:
+      - "7080:7080"
+    volumes:
+      - ./data:/app/data
+    environment:
+      - OBJEXRG_STORAGE_PATH=/app/data
+      - DATABASE_URL=host=postgres user=postgres password=prkal34 dbname=objexrg_credentials port=5432 sslmode=disable
+      - JWT_ACCESS_SECRET=your_super_secret_jwt_access_key_here
+      - JWT_REFRESH_SECRET=your_super_secret_jwt_refresh_key_here
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
