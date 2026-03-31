@@ -11,11 +11,11 @@ import (
 )
 
 type LoginValidator struct {
-	authRepo interfaces.Auth
+	authRepo interfaces.AuthInterface
 	validate *validator.Validate
 }
 
-func NewLoginValidator(authRepo interfaces.Auth) *LoginValidator {
+func NewLoginValidator(authRepo interfaces.AuthInterface) *LoginValidator {
 	v := validator.New()
 	return &LoginValidator{authRepo: authRepo, validate: v}
 }

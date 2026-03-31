@@ -14,11 +14,11 @@ import (
 )
 
 type RegisterValidator struct {
-	authRepo interfaces.Auth
+	authRepo interfaces.AuthInterface
 	validate *validator.Validate
 }
 
-func NewRegisterValidator(authRepo interfaces.Auth) *RegisterValidator {
+func NewRegisterValidator(authRepo interfaces.AuthInterface) *RegisterValidator {
 	v := validator.New()
 	v.RegisterValidation("birthdate", func(fl validator.FieldLevel) bool {
 		dateStr := fl.Field().String()

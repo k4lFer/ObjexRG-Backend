@@ -8,11 +8,11 @@ import (
 )
 
 type UserService struct {
-	user interfaces.Auth
+	user interfaces.AuthInterface
 	db   *gorm.DB
 }
 
-func NewUserService(user interfaces.Auth, db *gorm.DB) *UserService {
+func NewUserService(user interfaces.AuthInterface, db *gorm.DB) *UserService {
 	return &UserService{user: user, db: db}
 }
 

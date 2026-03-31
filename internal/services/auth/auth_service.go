@@ -14,13 +14,13 @@ import (
 )
 
 type AuthService struct {
-	auth         interfaces.Auth
+	auth         interfaces.AuthInterface
 	db           *gorm.DB
 	tokenService *TokenService
 	bucketSvc    *bucketsvc.BucketService
 }
 
-func NewAuthService(auth interfaces.Auth, db *gorm.DB, tokenService *TokenService, bucketSvc *bucketsvc.BucketService) *AuthService {
+func NewAuthService(auth interfaces.AuthInterface, db *gorm.DB, tokenService *TokenService, bucketSvc *bucketsvc.BucketService) *AuthService {
 	return &AuthService{auth: auth, db: db, tokenService: tokenService, bucketSvc: bucketSvc}
 }
 

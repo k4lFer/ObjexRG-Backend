@@ -21,7 +21,7 @@ import (
 	authrepository "objexrg-backend/internal/infrastructure/repositories/auth"
 	"objexrg-backend/internal/infrastructure/storage"
 	"objexrg-backend/internal/middleware"
-	models "objexrg-backend/internal/models/auth"
+	"objexrg-backend/internal/models/auth"
 
 	authsvc "objexrg-backend/internal/services/auth"
 	bucketsvc "objexrg-backend/internal/services/bucket"
@@ -51,10 +51,10 @@ func main() {
 
 	db := database.Connect()
 
-	db.AutoMigrate(&models.UserData{}, &models.UserCredentials{})
+	db.AutoMigrate(&auth_models.UserData{}, &auth_models.UserCredentials{})
 
 	localStore := storage.NewLocalStorage(basePath)
-	bucketService := bucketsvc.NewBucketService(localStore)
+	bucketService := bucketsvc.NewBucketService(localStore, db)
 	uploadService := services.NewUploadService(localStore)
 
 	authRepo := authrepository.NewAuthRepository(db)

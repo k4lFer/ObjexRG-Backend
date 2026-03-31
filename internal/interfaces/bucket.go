@@ -1,6 +1,6 @@
 package interfaces
 
-type Bucket interface {
+type BucketInterface interface {
 	CreateRootBucket(userID string) error
 	CreateSubBucket(userID, subBucketName string) error
 	DeleteSubBucket(userID, subBucketName string) error

@@ -1,14 +1,14 @@
 package interfaces
 
 import (
-	models "objexrg-backend/internal/models/auth"
+	"objexrg-backend/internal/models/auth"
 	"time"
 )
 
-type Auth interface {
-	Create(user *models.UserCredentials) error
-	GetByEmail(email string) (*models.UserCredentials, error)
-	GetByUsername(username string) (*models.UserCredentials, error)
+type AuthInterface interface {
+	Create(user *auth_models.UserCredentials) error
+	GetByEmail(email string) (*auth_models.UserCredentials, error)
+	GetByUsername(username string) (*auth_models.UserCredentials, error)
 	RegisterUser(email, username, password, firstName, lastName string, birthDate time.Time) (string, error)
-	GetByID(id string) (*models.UserCredentials, error)
+	GetByID(id string) (*auth_models.UserCredentials, error)
 }

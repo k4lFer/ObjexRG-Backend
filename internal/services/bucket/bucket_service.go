@@ -3,14 +3,17 @@ package bucket
 import (
 	"fmt"
 	"objexrg-backend/internal/interfaces"
+
+	"gorm.io/gorm"
 )
 
 type BucketService struct {
-	bucket interfaces.Bucket
+	bucket interfaces.BucketInterface
+	db	 *gorm.DB
 }
 
-func NewBucketService(bucket interfaces.Bucket) *BucketService {
-	return &BucketService{bucket: bucket}
+func NewBucketService(bucket interfaces.BucketInterface, db *gorm.DB) *BucketService {
+	return &BucketService{bucket: bucket, db: db}
 }
 
 func (s *BucketService) CreateRootBucket(userID string) error {
