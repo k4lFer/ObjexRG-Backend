@@ -138,7 +138,7 @@ func (h *BucketHandler) ListBuckets(c *gin.Context) {
 		return
 	}
 
-	buckets, err := h.storage.ListUserBuckets(userID.(string))
+	buckets, err := h.svc.ListBuckets(userID.(string))
 	if err != nil {
 		res := common_result.Fail[any](err.Error(), http.StatusInternalServerError)
 		c.JSON(res.Code, res)
@@ -180,9 +180,7 @@ func (h *BucketHandler) ListObjects(c *gin.Context) {
 		return
 	}
 
-	bucketPath := userID.(string) + "/" + name
-
-	objects, err := h.storage.ListObjects(bucketPath)
+	objects, err := h.svc.ListObjects(userID.(string), name)
 	if err != nil {
 		res := common_result.Fail[any](err.Error(), http.StatusInternalServerError)
 		c.JSON(res.Code, res)
@@ -243,8 +241,7 @@ func (h *BucketHandler) ListStorage(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "bucket name required"})
 		return
 	}
-	bucketPath := userID.(string) + "/" + name
-	objects, err := h.storage.ListObjects(bucketPath)
+	objects, err := h.svc.ListObjects(userID.(string), name)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

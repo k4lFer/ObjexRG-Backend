@@ -68,8 +68,12 @@ func (h *UploadHandler) Upload(c *gin.Context) {
 	}
 	defer src.Close()
 
-	bucketPath := userID.(string) + "/" + bucketName
-	stored, err := h.service.Upload(bucketPath, fileHeader.Filename, src)
+	mimeType := fileHeader.Header.Get("Content-Type")
+	if mimeType == "" {
+		mimeType = "application/octet-stream"
+	}
+
+	stored, err := h.service.Upload(userID.(string), bucketName, fileHeader.Filename, fileHeader.Size, mimeType, src)
 	if err != nil {
 		res := common_result.Fail[any](err.Error(), http.StatusInternalServerError)
 		c.JSON(res.Code, res)

@@ -19,9 +19,11 @@ import (
 	user_handler "objexrg-backend/internal/handlers/http/user"
 	"objexrg-backend/internal/infrastructure/database"
 	authrepository "objexrg-backend/internal/infrastructure/repositories/auth"
+	storage_repo "objexrg-backend/internal/infrastructure/repositories/storage"
 	"objexrg-backend/internal/infrastructure/storage"
 	"objexrg-backend/internal/middleware"
-	"objexrg-backend/internal/models/auth"
+	auth_models "objexrg-backend/internal/models/auth"
+	storage_models "objexrg-backend/internal/models/storage"
 
 	authsvc "objexrg-backend/internal/services/auth"
 	bucketsvc "objexrg-backend/internal/services/bucket"
@@ -51,11 +53,15 @@ func main() {
 
 	db := database.Connect()
 
-	db.AutoMigrate(&auth_models.UserData{}, &auth_models.UserCredentials{})
+	db.AutoMigrate(
+		&auth_models.UserData{}, &auth_models.UserCredentials{},
+		&storage_models.Bucket{}, &storage_models.Objects{}, &storage_models.ObjectShares{},
+	)
 
+	storageRepo := storage_repo.NewStorageRepository(db)
 	localStore := storage.NewLocalStorage(basePath)
-	bucketService := bucketsvc.NewBucketService(localStore, db)
-	uploadService := services.NewUploadService(localStore)
+	bucketService := bucketsvc.NewBucketService(localStore, storageRepo)
+	uploadService := services.NewUploadService(localStore, storageRepo)
 
 	authRepo := authrepository.NewAuthRepository(db)
 	tokenService, err := authsvc.NewTokenService()
@@ -70,6 +76,7 @@ func main() {
 	authMiddleware := middleware.NewAuthMiddleware(tokenService)
 
 	router := gin.Default()
+	router.Use(middleware.CORSMiddleware())
 
 	// Swagger endpoint
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
