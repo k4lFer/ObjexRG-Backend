@@ -62,6 +62,7 @@ func main() {
 	localStore := storage.NewLocalStorage(basePath)
 	bucketService := bucketsvc.NewBucketService(localStore, storageRepo)
 	uploadService := services.NewUploadService(localStore, storageRepo)
+	shareService := services.NewShareService(localStore, storageRepo)
 
 	authRepo := authrepository.NewAuthRepository(db)
 	tokenService, err := authsvc.NewTokenService()
@@ -99,6 +100,8 @@ func main() {
 
 		downloadGroup := protected.Group("/download")
 		storage_handler.RegisterDownloadRoutes(downloadGroup, uploadService)
+
+		storage_handler.RegisterShareRoutes(protected, router.Group("/"), storage_handler.NewShareHandler(shareService))
 	}
 
 	if err := router.Run(":7080"); err != nil {

@@ -56,6 +56,42 @@ definitions:
     required:
     - name
     type: object
+  bucket_response.ShareItemResponse:
+    properties:
+      bucket_name:
+        type: string
+      created_at:
+        type: string
+      download_count:
+        type: integer
+      expires_at:
+        type: string
+      file_name:
+        type: string
+      mime_type:
+        type: string
+      revoked:
+        type: boolean
+      size_bytes:
+        type: integer
+      token:
+        type: string
+      url:
+        type: string
+    type: object
+  bucket_response.ShareListResponse:
+    properties:
+      details:
+        items:
+          $ref: '#/definitions/bucket_response.ShareItemResponse'
+        type: array
+    type: object
+  storage_handler.ShareRequest:
+    properties:
+      expires_at:
+        example: "2026-07-07T23:59:59Z"
+        type: string
+    type: object
   user_input.PatchMeRequest:
     properties:
       birth_date:
@@ -412,6 +448,106 @@ paths:
       summary: Download a file from a bucket
       tags:
       - download
+  /s/{token}:
+    get:
+      description: Fetch a publicly shared file by its token
+      parameters:
+      - description: Share token
+        in: path
+        name: token
+        required: true
+        type: string
+      produces:
+      - application/octet-stream
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: file
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Access a shared file
+      tags:
+      - share
+  /share/{bucket}/{filename}:
+    post:
+      consumes:
+      - application/json
+      description: Generate a public, temporary URL for a file
+      parameters:
+      - description: Bucket name
+        in: path
+        name: bucket
+        required: true
+        type: string
+      - description: File name
+        in: path
+        name: filename
+        required: true
+        type: string
+      - description: Optional expiration date (RFC3339 format)
+        in: body
+        name: request
+        schema:
+          $ref: '#/definitions/storage_handler.ShareRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Generate a share link for a file
+      tags:
+      - share
+  /share/list:
+    get:
+      consumes:
+      - application/json
+      description: View all generated shares by the user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/bucket_response.ShareListResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List all shares
+      tags:
+      - share
   /upload/{bucket}:
     post:
       consumes:
