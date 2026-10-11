@@ -1,10 +1,10 @@
 package common_result
 
 type Result[T any] struct {
-    Success bool
-    Data    *T
-    Messages  []string
-    Code    int
+	Success  bool     `json:"success"`
+	Data     *T       `json:"data"`
+	Messages []string `json:"messages"`
+	Code     int      `json:"code"`
 }
 
 func Ok[T any](data *T, code int, message string) Result[T] {

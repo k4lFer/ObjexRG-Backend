@@ -10,6 +10,7 @@ import (
 	models "objexrg-backend/internal/models/auth"
 	bucketsvc "objexrg-backend/internal/services/bucket"
 
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -66,6 +67,10 @@ func (s *AuthService) Login(req *dtos.LoginRequest) (*models.UserCredentials, *T
 		return nil, nil, fmt.Errorf("failed to generate tokens: %w", err)
 	}
 
+	if err := s.persistRefreshToken(user.ID, tokens); err != nil {
+		return nil, nil, fmt.Errorf("failed to persist refresh token: %w", err)
+	}
+
 	return user, tokens, nil
 }
 
@@ -87,10 +92,55 @@ func (s *AuthService) RefreshToken(refreshToken string) (*TokenPair, error) {
 		return nil, err
 	}
 
+	// The refresh token must still exist and not have been revoked/rotated.
+	stored, err := s.auth.GetRefreshTokenByID(claims.ID)
+	if err != nil {
+		return nil, err
+	}
+	if stored == nil || stored.Revoked {
+		return nil, errors.New("refresh token is no longer valid")
+	}
+	if stored.ExpiresAt.Before(time.Now()) {
+		return nil, errors.New("refresh token expired")
+	}
+
+	// Rotate: revoke the used token before issuing a new pair.
+	if err := s.auth.RevokeRefreshToken(claims.ID); err != nil {
+		return nil, fmt.Errorf("failed to rotate refresh token: %w", err)
+	}
+
 	tokens, err := s.tokenService.GenerateTokenPair(claims.Subject)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate tokens: %w", err)
 	}
 
+	userID, err := uuid.Parse(claims.Subject)
+	if err != nil {
+		return nil, fmt.Errorf("invalid subject in refresh token: %w", err)
+	}
+
+	if err := s.persistRefreshToken(userID, tokens); err != nil {
+		return nil, fmt.Errorf("failed to persist refresh token: %w", err)
+	}
+
 	return tokens, nil
+}
+
+func (s *AuthService) Logout(refreshToken string) error {
+	claims, err := s.tokenService.ValidateRefreshToken(refreshToken)
+	if err != nil {
+		// Already invalid/expired: treat as a successful logout.
+		return nil
+	}
+	return s.auth.RevokeRefreshToken(claims.ID)
+}
+
+func (s *AuthService) persistRefreshToken(userID uuid.UUID, tokens *TokenPair) error {
+	return s.auth.CreateRefreshToken(&models.RefreshToken{
+		ID:        uuid.MustParse(tokens.RefreshJTI),
+		UserID:    userID,
+		ExpiresAt: tokens.RefreshExpiresAt,
+		Revoked:   false,
+		CreatedAt: time.Now(),
+	})
 }

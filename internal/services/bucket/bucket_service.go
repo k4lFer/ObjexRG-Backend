@@ -120,6 +120,7 @@ func (s *BucketService) ListObjects(userID, bucketName string) ([]bucket_respons
 			SizeBytes: obj.SizeBytes,
 			Extension: obj.Extension,
 			MimeType:  obj.MimeType,
+			IsPublic:  obj.IsPublic,
 			CreatedAt: obj.CreatedAt,
 		})
 	}

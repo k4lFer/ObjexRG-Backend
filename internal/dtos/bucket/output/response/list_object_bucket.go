@@ -8,6 +8,7 @@ type ObjectInfo struct {
 	SizeBytes int64     `json:"sizeBytes"`
 	Extension string    `json:"extension"`
 	MimeType  string    `json:"mimeType"`
+	IsPublic  bool      `json:"isPublic"`
 	CreatedAt time.Time `json:"createdAt"`
 }
 

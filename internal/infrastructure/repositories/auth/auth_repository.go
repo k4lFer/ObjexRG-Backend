@@ -84,3 +84,25 @@ func (r *AuthRepository) GetByID(id string) (*auth_models.UserCredentials, error
 	}
 	return &user, nil
 }
+
+func (r *AuthRepository) CreateRefreshToken(token *auth_models.RefreshToken) error {
+	return r.db.Create(token).Error
+}
+
+func (r *AuthRepository) GetRefreshTokenByID(id string) (*auth_models.RefreshToken, error) {
+	var token auth_models.RefreshToken
+	err := r.db.Where("id = ?", id).First(&token).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &token, nil
+}
+
+func (r *AuthRepository) RevokeRefreshToken(id string) error {
+	return r.db.Model(&auth_models.RefreshToken{}).
+		Where("id = ?", id).
+		Update("revoked", true).Error
+}

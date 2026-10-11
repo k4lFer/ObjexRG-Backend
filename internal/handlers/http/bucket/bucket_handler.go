@@ -232,21 +232,31 @@ func (h *BucketHandler) ListObjects(c *gin.Context) {
 func (h *BucketHandler) ListStorage(c *gin.Context) {
 	userID, exists := c.Get("userID")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		res := common_result.Fail[any]("unauthorized", http.StatusUnauthorized)
+		c.JSON(res.Code, res)
 		return
 	}
 
 	name := c.Param("bucket")
 	if name == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "bucket name required"})
+		res := common_result.Fail[any]("bucket name required", http.StatusBadRequest)
+		c.JSON(res.Code, res)
 		return
 	}
 	objects, err := h.svc.ListObjects(userID.(string), name)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		res := common_result.Fail[any](err.Error(), http.StatusInternalServerError)
+		c.JSON(res.Code, res)
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"bucket": name, "storage": objects})
+
+	data := bucket_response.ObjectsListResponse{
+		Bucket:  name,
+		Objects: objects,
+	}
+
+	res := common_result.Ok(&data, http.StatusOK, "Storage retrieved successfully")
+	c.JSON(res.Code, res)
 }
 
 func RegisterBucketRoutes(r *gin.RouterGroup, svc *bucketsvc.BucketService, storage interfaces.StorageInterface) {

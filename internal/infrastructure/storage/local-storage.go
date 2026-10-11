@@ -102,6 +102,16 @@ func (l *LocalStorage) Get(bucket string, filename string) (io.ReadCloser, error
 	return file, nil
 }
 
+func (l *LocalStorage) DeleteObject(bucket string, filename string) error {
+	if bucket == "" || filename == "" {
+		return fmt.Errorf("bucket y filename son requeridos")
+	}
+	if err := os.Remove(l.objectPath(bucket, filename)); err != nil {
+		return fmt.Errorf("eliminar objeto: %w", err)
+	}
+	return nil
+}
+
 func (l *LocalStorage) ListBuckets() ([]string, error) {
 	entries, err := os.ReadDir(l.basePath)
 	if err != nil {

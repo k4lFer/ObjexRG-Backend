@@ -12,6 +12,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -26,10 +27,15 @@ type TokenPair struct {
 	RefreshToken string `json:"refresh_token"`
 	TokenType    string `json:"token_type"`
 	ExpiresIn    int64  `json:"expires_in"`
+
+	// Internal metadata used to persist/rotate the refresh token.
+	RefreshJTI       string    `json:"-"`
+	RefreshExpiresAt time.Time `json:"-"`
 }
 
 type Claims struct {
 	jwt.RegisteredClaims
+	TokenType string `json:"token_type,omitempty"`
 }
 
 func NewTokenService() (*TokenService, error) {
@@ -66,6 +72,7 @@ func (ts *TokenService) GenerateTokenPair(userID string) (*TokenPair, error) {
 			Issuer:    "objexrg-backend",
 			Subject:   userID,
 		},
+		TokenType: "access",
 	}
 
 	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, accessClaims)
@@ -75,13 +82,17 @@ func (ts *TokenService) GenerateTokenPair(userID string) (*TokenPair, error) {
 	}
 
 	// Refresh token (7 days)
+	refreshJTI := uuid.NewString()
+	refreshExpiresAt := time.Now().Add(7 * 24 * time.Hour)
 	refreshClaims := &Claims{
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(7 * 24 * time.Hour)),
+			ExpiresAt: jwt.NewNumericDate(refreshExpiresAt),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 			Issuer:    "objexrg-backend",
 			Subject:   userID,
+			ID:        refreshJTI,
 		},
+		TokenType: "refresh",
 	}
 
 	refreshToken := jwt.NewWithClaims(jwt.SigningMethodHS256, refreshClaims)
@@ -91,10 +102,12 @@ func (ts *TokenService) GenerateTokenPair(userID string) (*TokenPair, error) {
 	}
 
 	return &TokenPair{
-		AccessToken:  accessTokenString,
-		RefreshToken: refreshTokenString,
-		TokenType:    "Bearer",
-		ExpiresIn:    15 * 60, // 15 minutes in seconds
+		AccessToken:      accessTokenString,
+		RefreshToken:     refreshTokenString,
+		TokenType:        "Bearer",
+		ExpiresIn:        15 * 60, // 15 minutes in seconds
+		RefreshJTI:       refreshJTI,
+		RefreshExpiresAt: refreshExpiresAt,
 	}, nil
 }
 
@@ -111,6 +124,9 @@ func (ts *TokenService) ValidateAccessToken(tokenString string) (*Claims, error)
 	}
 
 	if claims, ok := token.Claims.(*Claims); ok && token.Valid {
+		if claims.TokenType != "access" {
+			return nil, errors.New("not an access token")
+		}
 		return claims, nil
 	}
 
@@ -130,6 +146,9 @@ func (ts *TokenService) ValidateRefreshToken(tokenString string) (*Claims, error
 	}
 
 	if claims, ok := token.Claims.(*Claims); ok && token.Valid {
+		if claims.TokenType != "refresh" {
+			return nil, errors.New("not a refresh token")
+		}
 		return claims, nil
 	}
 

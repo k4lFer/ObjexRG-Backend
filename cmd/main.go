@@ -54,7 +54,7 @@ func main() {
 	db := database.Connect()
 
 	db.AutoMigrate(
-		&auth_models.UserData{}, &auth_models.UserCredentials{},
+		&auth_models.UserData{}, &auth_models.UserCredentials{}, &auth_models.RefreshToken{},
 		&storage_models.Bucket{}, &storage_models.Objects{}, &storage_models.ObjectShares{},
 	)
 
@@ -63,6 +63,7 @@ func main() {
 	bucketService := bucketsvc.NewBucketService(localStore, storageRepo)
 	uploadService := services.NewUploadService(localStore, storageRepo)
 	shareService := services.NewShareService(localStore, storageRepo)
+	objectService := services.NewObjectService(localStore, storageRepo)
 
 	authRepo := authrepository.NewAuthRepository(db)
 	tokenService, err := authsvc.NewTokenService()
@@ -101,7 +102,10 @@ func main() {
 		downloadGroup := protected.Group("/download")
 		storage_handler.RegisterDownloadRoutes(downloadGroup, uploadService)
 
+		storage_handler.RegisterObjectRoutes(protected, storage_handler.NewObjectHandler(objectService))
+
 		storage_handler.RegisterShareRoutes(protected, router.Group("/"), storage_handler.NewShareHandler(shareService))
+		storage_handler.RegisterPublicObjectRoutes(router.Group("/"), storage_handler.NewObjectHandler(objectService))
 	}
 
 	if err := router.Run(":7080"); err != nil {

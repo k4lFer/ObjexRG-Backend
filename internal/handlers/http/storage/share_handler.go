@@ -103,13 +103,15 @@ func AccessSharedFile(svc *storage.ShareService) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		token := c.Param("token")
 		if token == "" {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "token required"})
+			res := common_result.Fail[any]("token required", http.StatusBadRequest)
+			c.JSON(res.Code, res)
 			return
 		}
 
 		stream, obj, err := svc.GetSharedObject(token)
 		if err != nil {
-			c.JSON(http.StatusNotFound, gin.H{"error": "not found or expired"})
+			res := common_result.Fail[any]("not found or expired", http.StatusNotFound)
+			c.JSON(res.Code, res)
 			return
 		}
 		defer stream.Close()

@@ -68,6 +68,31 @@ func (r *StorageRepository) GetObjectByFileName(bucketID uuid.UUID, fileName str
 	return &obj, nil
 }
 
+func (r *StorageRepository) GetObjectByID(id uuid.UUID) (*storage_models.Objects, error) {
+	var obj storage_models.Objects
+	err := r.db.Preload("Bucket").Where("id = ?", id).First(&obj).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &obj, nil
+}
+
+func (r *StorageRepository) UpdateObjectVisibility(ownerID, bucketID uuid.UUID, fileName string, isPublic bool) error {
+	result := r.db.Model(&storage_models.Objects{}).
+		Where("owner_id = ? AND bucket_id = ? AND file_name = ?", ownerID, bucketID, fileName).
+		Update("is_public", isPublic)
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return errors.New("object not found")
+	}
+	return nil
+}
+
 func (r *StorageRepository) CreateObjectShare(share *storage_models.ObjectShares) error {
 	return r.db.Create(share).Error
 }

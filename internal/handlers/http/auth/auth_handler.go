@@ -130,6 +130,8 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		Email:        user.Email,
 		AccessToken:  tokens.AccessToken,
 		RefreshToken: tokens.RefreshToken,
+		TokenType:    tokens.TokenType,
+		ExpiresIn:    tokens.ExpiresIn,
 	}
 
 	res := common_result.Ok(&data, http.StatusOK, "Login successful")
@@ -201,9 +203,41 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 	}
 	data := auth_response.RefreshResponse{
 		AccessToken:  tokens.AccessToken,
+		RefreshToken: tokens.RefreshToken,
+		TokenType:    tokens.TokenType,
+		ExpiresIn:    tokens.ExpiresIn,
 	}
 
 	res := common_result.Ok(&data, http.StatusOK, "Token refreshed successfully")
+	c.JSON(res.Code, res)
+}
+
+// LogoutUser godoc
+// @Summary Logout user
+// @Description Revoke the provided refresh token so it can no longer be used
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param request body auth_input.LogoutRequest true "Refresh token to revoke"
+// @Security BearerAuth
+// @Success 200 {object} map[string]interface{}
+// @Failure 422 {object} map[string]string
+// @Router /auth/logout [post]
+func (h *AuthHandler) Logout(c *gin.Context) {
+	var req auth_input.LogoutRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		res := common_result.Fail[any]("Invalid JSON format", http.StatusUnprocessableEntity)
+		c.JSON(res.Code, res)
+		return
+	}
+
+	if err := h.authService.Logout(req.RefreshToken); err != nil {
+		res := common_result.Fail[any](err.Error(), http.StatusInternalServerError)
+		c.JSON(res.Code, res)
+		return
+	}
+
+	res := common_result.Ok[any](nil, http.StatusOK, "Logged out successfully")
 	c.JSON(res.Code, res)
 }
 
@@ -211,4 +245,5 @@ func RegisterAuthRoutes(router *gin.RouterGroup, authHandler *AuthHandler) {
 	router.POST("/register", authHandler.Register)
 	router.POST("/login", authHandler.Login)
 	router.POST("/refresh", authHandler.RefreshToken)
+	router.POST("/logout", authHandler.Logout)
 }
