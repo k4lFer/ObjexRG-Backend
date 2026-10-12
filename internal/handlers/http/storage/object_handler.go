@@ -1,7 +1,6 @@
 package storage_handler
 
 import (
-	"io"
 	"net/http"
 
 	bucket_response "objexrg-backend/internal/dtos/bucket/output/response"
@@ -130,11 +129,7 @@ func (h *ObjectHandler) GetPublicObject(c *gin.Context) {
 	}
 	defer stream.Close()
 
-	c.Header("Content-Type", obj.MimeType)
-	c.Header("Content-Disposition", "inline; filename=\""+obj.FileName+"\"")
-	c.Status(http.StatusOK)
-
-	_, _ = io.Copy(c.Writer, stream)
+	serveObject(c, stream, obj.FileName, obj.MimeType, obj.CreatedAt, "inline")
 }
 
 func RegisterObjectRoutes(r *gin.RouterGroup, h *ObjectHandler) {

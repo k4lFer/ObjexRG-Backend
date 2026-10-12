@@ -1,7 +1,6 @@
 package storage_handler
 
 import (
-	"io"
 	"net/http"
 
 	"objexrg-backend/internal/services/storage"
@@ -40,8 +39,7 @@ func Download(svc *storage.UploadService) gin.HandlerFunc {
 			return
 		}
 
-		bucketPath := userID.(string) + "/" + bucketName
-		stream, err := svc.Download(bucketPath, filename)
+		stream, obj, err := svc.Download(userID.(string), bucketName, filename)
 		if err != nil {
 			res := common_result.Fail[any](err.Error(), http.StatusNotFound)
 			c.JSON(res.Code, res)
@@ -49,11 +47,7 @@ func Download(svc *storage.UploadService) gin.HandlerFunc {
 		}
 		defer stream.Close()
 
-		c.Header("Content-Disposition", "attachment; filename=\""+filename+"\"")
-		c.Header("Content-Type", "application/octet-stream")
-		c.Status(http.StatusOK)
-
-		_, _ = io.Copy(c.Writer, stream)
+		serveObject(c, stream, obj.FileName, obj.MimeType, obj.CreatedAt, "attachment")
 	}
 }
 

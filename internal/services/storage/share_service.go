@@ -95,7 +95,7 @@ func (s *ShareService) GetSharedObject(token string) (io.ReadCloser, *storage_mo
 	}
 
 	bucketPath := share.Object.OwnerID.String() + "/" + share.Object.Bucket.Name
-	stream, err := s.storage.Get(bucketPath, share.Object.FileName)
+	stream, err := s.storage.Get(bucketPath, share.Object.StorageName())
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to retrieve file from storage: %w", err)
 	}

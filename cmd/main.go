@@ -97,7 +97,7 @@ func main() {
 		bucket_handler.RegisterBucketRoutes(bucketGroup, bucketService, localStore)
 
 		uploadGroup := protected.Group("/upload")
-		storage_handler.RegisterUploadRoutes(uploadGroup, storage_handler.NewUploadHandler(uploadService))
+		storage_handler.RegisterUploadRoutes(uploadGroup, storage_handler.NewUploadHandler(uploadService, cfg.MaxUploadBytes))
 
 		downloadGroup := protected.Group("/download")
 		storage_handler.RegisterDownloadRoutes(downloadGroup, uploadService)

@@ -1,7 +1,6 @@
 package storage_handler
 
 import (
-	"io"
 	"net/http"
 	"time"
 
@@ -116,13 +115,7 @@ func AccessSharedFile(svc *storage.ShareService) gin.HandlerFunc {
 		}
 		defer stream.Close()
 
-		// Setting Content-Type dynamically based on original object
-		c.Header("Content-Type", obj.MimeType)
-		// Option "inline" will tell the browser to open it right in the tab if supported
-		c.Header("Content-Disposition", "inline; filename=\""+obj.FileName+"\"")
-		c.Status(http.StatusOK)
-
-		_, _ = io.Copy(c.Writer, stream)
+		serveObject(c, stream, obj.FileName, obj.MimeType, obj.CreatedAt, "inline")
 	}
 }
 

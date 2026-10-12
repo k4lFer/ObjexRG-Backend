@@ -66,7 +66,7 @@ func (s *ObjectService) DeleteObject(userID, bucketName, filename string) error 
 	}
 
 	bucketPath := userID + "/" + bucketName
-	if err := s.storage.DeleteObject(bucketPath, filename); err != nil {
+	if err := s.storage.DeleteObject(bucketPath, obj.StorageName()); err != nil {
 		return fmt.Errorf("failed to remove file from storage: %w", err)
 	}
 
@@ -89,7 +89,7 @@ func (s *ObjectService) GetPublic(objectID string) (io.ReadCloser, *storage_mode
 	}
 
 	bucketPath := obj.OwnerID.String() + "/" + obj.Bucket.Name
-	stream, err := s.storage.Get(bucketPath, obj.FileName)
+	stream, err := s.storage.Get(bucketPath, obj.StorageName())
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to retrieve file from storage: %w", err)
 	}
