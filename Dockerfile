@@ -2,6 +2,7 @@
 FROM golang:1.25-alpine AS builder
 
 ENV GOTOOLCHAIN=local
+ENV CGO_ENABLED=0
 
 WORKDIR /app
 
@@ -12,12 +13,12 @@ RUN go mod download
 # Copy source code
 COPY . .
 
-# Generate Swagger docs
+# Generate Swagger docs (cmd/docs is excluded via .dockerignore)
 RUN go install github.com/swaggo/swag/cmd/swag@v1.8.1
-RUN swag init -g ./cmd/main.go && mv docs cmd/docs || true
+RUN swag init -g ./cmd/main.go -o ./cmd/docs
 
 # Build the application
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main ./cmd
+RUN GOOS=linux go build -a -installsuffix cgo -o main ./cmd
 
 # Final stage
 FROM alpine:latest

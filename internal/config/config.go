@@ -17,6 +17,7 @@ type Config struct {
 
 	StorageDriver    string
 	S3Endpoint       string
+	S3PublicEndpoint string
 	S3AccessKey      string
 	S3SecretKey      string
 	S3Bucket         string
@@ -43,6 +44,7 @@ func LoadConfig() *Config {
 
 		StorageDriver:    getEnv("STORAGE_DRIVER", "local"),
 		S3Endpoint:       os.Getenv("S3_ENDPOINT"),
+		S3PublicEndpoint: os.Getenv("S3_PUBLIC_ENDPOINT"),
 		S3AccessKey:      os.Getenv("S3_ACCESS_KEY"),
 		S3SecretKey:      os.Getenv("S3_SECRET_KEY"),
 		S3Bucket:         getEnv("S3_BUCKET", "objexrg"),

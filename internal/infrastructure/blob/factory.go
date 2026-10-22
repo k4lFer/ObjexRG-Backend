@@ -20,6 +20,7 @@ func NewBlobStore(ctx context.Context, cfg *config.Config) (interfaces.BlobStore
 	case DriverS3:
 		store, err := NewS3BlobStore(S3Options{
 			Endpoint:       cfg.S3Endpoint,
+			PublicEndpoint: cfg.S3PublicEndpoint,
 			Region:         cfg.S3Region,
 			AccessKey:      cfg.S3AccessKey,
 			SecretKey:      cfg.S3SecretKey,

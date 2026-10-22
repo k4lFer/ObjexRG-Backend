@@ -3,16 +3,16 @@ services:
     image: postgres:17-alpine
     container_name: objexrg-postgres
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: prkal34
-      POSTGRES_DB: objexrg_credentials
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-prkal34}
+      POSTGRES_DB: ${DB_NAME:-objexrg_credentials}
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -61,31 +61,81 @@ services:
         rc alias set rustfs http://rustfs:9000 "$${RUSTFS_ACCESS_KEY}" "$${RUSTFS_SECRET_KEY}"
         rc mb --ignore-existing rustfs/"$${S3_BUCKET}"
         echo "Bucket ready: $${S3_BUCKET}"
+    restart: "no"
 
   objexrg:
     build: .
-    container_name: objexrg
-    ports:
-      - "7080:7080"
     environment:
-      - DATABASE_URL=host=postgres user=postgres password=prkal34 dbname=objexrg_credentials port=5432 sslmode=disable
-      - JWT_ACCESS_SECRET=your_super_secret_jwt_access_key_here
-      - JWT_REFRESH_SECRET=your_super_secret_jwt_refresh_key_here
-      - PUBLIC_BASE_URL=http://localhost:7080
+      - DATABASE_URL=host=postgres user=${DB_USER:-postgres} password=${DB_PASSWORD:-prkal34} dbname=${DB_NAME:-objexrg_credentials} port=5432 sslmode=disable
+      - JWT_ACCESS_SECRET=${JWT_ACCESS_SECRET:-your_super_secret_jwt_access_key_here}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET:-your_super_secret_jwt_refresh_key_here}
+      - PUBLIC_BASE_URL=${GATEWAY_PUBLIC_URL:-http://localhost:8080}
+      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-http://localhost:8080,http://127.0.0.1:8080,http://localhost:3000,http://127.0.0.1:3000,http://localhost:5173,http://127.0.0.1:5173}
       - STORAGE_DRIVER=s3
       - S3_ENDPOINT=http://rustfs:9000
+      - S3_PUBLIC_ENDPOINT=${S3_PUBLIC_ENDPOINT:-http://localhost:9000}
       - S3_ACCESS_KEY=${RUSTFS_ACCESS_KEY:-rustfsadmin}
       - S3_SECRET_KEY=${RUSTFS_SECRET_KEY:-rustfsadmin}
       - S3_BUCKET=${S3_BUCKET:-objexrg}
       - S3_REGION=us-east-1
       - S3_USE_SSL=false
       - S3_FORCE_PATH_STYLE=true
+    expose:
+      - "7080"
     depends_on:
       postgres:
         condition: service_healthy
       rustfs:
         condition: service_healthy
+      rustfs-init:
+        condition: service_completed_successfully
     restart: unless-stopped
+    deploy:
+      replicas: 2
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:7080/swagger/index.html || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 15s
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_URL: ${VITE_API_URL:-/}
+    expose:
+      - "80"
+    restart: unless-stopped
+    deploy:
+      replicas: 2
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 10s
+
+  # Edge reverse proxy: load balances requests across backend/frontend replicas.
+  gateway:
+    image: nginx:alpine
+    container_name: objexrg-gateway
+    ports:
+      - "8080:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      objexrg:
+        condition: service_healthy
+      frontend:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 10s
 
 volumes:
   postgres_data:

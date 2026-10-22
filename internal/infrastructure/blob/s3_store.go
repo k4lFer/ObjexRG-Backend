@@ -25,6 +25,7 @@ type S3BlobStore struct {
 
 type S3Options struct {
 	Endpoint       string
+	PublicEndpoint string
 	Region         string
 	AccessKey      string
 	SecretKey      string
@@ -61,9 +62,21 @@ func NewS3BlobStore(opts S3Options) (*S3BlobStore, error) {
 		o.UsePathStyle = opts.ForcePathStyle
 	})
 
+	// Presigned URLs are handed to the browser, so they must use an endpoint
+	// the browser can reach (localhost in Docker Compose). Server-side
+	// operations keep using the internal endpoint.
+	presignEndpoint := normalizeEndpoint(opts.PublicEndpoint, opts.UseSSL)
+	if presignEndpoint == "" {
+		presignEndpoint = endpoint
+	}
+	presignClient := s3.NewFromConfig(awsCfg, func(o *s3.Options) {
+		o.BaseEndpoint = aws.String(presignEndpoint)
+		o.UsePathStyle = opts.ForcePathStyle
+	})
+
 	return &S3BlobStore{
 		client:  client,
-		presign: s3.NewPresignClient(client),
+		presign: s3.NewPresignClient(presignClient),
 		bucket:  opts.Bucket,
 	}, nil
 }
