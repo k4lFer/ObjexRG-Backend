@@ -1,4 +1,4 @@
-package bucket_response
+package response
 
 type UploadDataResponse struct {
 	Bucket   string `json:"bucket"`

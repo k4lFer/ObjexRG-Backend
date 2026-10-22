@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   postgres:
     image: postgres:17-alpine
@@ -19,22 +17,76 @@ services:
       timeout: 5s
       retries: 5
 
-  objexrg-backend:
+  rustfs:
+    image: rustfs/rustfs:latest
+    container_name: objexrg-rustfs
+    restart: unless-stopped
+    ports:
+      - "9000:9000" # S3 API
+      - "9001:9001" # Web console
+    environment:
+      RUSTFS_VOLUMES: /data
+      RUSTFS_ADDRESS: ":9000"
+      RUSTFS_CONSOLE_ADDRESS: ":9001"
+      RUSTFS_CONSOLE_ENABLE: "true"
+      RUSTFS_CONSOLE_CORS_ALLOWED_ORIGINS: "*"
+      RUSTFS_CORS_ALLOWED_ORIGINS: ${RUSTFS_CORS_ALLOWED_ORIGINS:-*}
+      RUSTFS_ACCESS_KEY: ${RUSTFS_ACCESS_KEY:-rustfsadmin}
+      RUSTFS_SECRET_KEY: ${RUSTFS_SECRET_KEY:-rustfsadmin}
+      RUSTFS_OBS_LOGGER_LEVEL: info
+    volumes:
+      - rustfs-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://127.0.0.1:9000/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 15s
+
+  # Bootstrap one-shot: espera a RustFS y crea el bucket de la aplicación.
+  rustfs-init:
+    image: rustfs/rc:latest
+    container_name: objexrg-rustfs-init
+    depends_on:
+      rustfs:
+        condition: service_healthy
+    environment:
+      RUSTFS_ACCESS_KEY: ${RUSTFS_ACCESS_KEY:-rustfsadmin}
+      RUSTFS_SECRET_KEY: ${RUSTFS_SECRET_KEY:-rustfsadmin}
+      S3_BUCKET: ${S3_BUCKET:-objexrg}
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        set -e
+        rc alias set rustfs http://rustfs:9000 "$${RUSTFS_ACCESS_KEY}" "$${RUSTFS_SECRET_KEY}"
+        rc mb --ignore-existing rustfs/"$${S3_BUCKET}"
+        echo "Bucket ready: $${S3_BUCKET}"
+
+  objexrg:
     build: .
-    container_name: objexrg-backend
+    container_name: objexrg
     ports:
       - "7080:7080"
-    volumes:
-      - ./data:/app/data
     environment:
-      - OBJEXRG_STORAGE_PATH=/app/data
       - DATABASE_URL=host=postgres user=postgres password=prkal34 dbname=objexrg_credentials port=5432 sslmode=disable
       - JWT_ACCESS_SECRET=your_super_secret_jwt_access_key_here
       - JWT_REFRESH_SECRET=your_super_secret_jwt_refresh_key_here
+      - PUBLIC_BASE_URL=http://localhost:7080
+      - STORAGE_DRIVER=s3
+      - S3_ENDPOINT=http://rustfs:9000
+      - S3_ACCESS_KEY=${RUSTFS_ACCESS_KEY:-rustfsadmin}
+      - S3_SECRET_KEY=${RUSTFS_SECRET_KEY:-rustfsadmin}
+      - S3_BUCKET=${S3_BUCKET:-objexrg}
+      - S3_REGION=us-east-1
+      - S3_USE_SSL=false
+      - S3_FORCE_PATH_STYLE=true
     depends_on:
       postgres:
+        condition: service_healthy
+      rustfs:
         condition: service_healthy
     restart: unless-stopped
 
 volumes:
   postgres_data:
+  rustfs-data:

@@ -69,7 +69,7 @@ func (ts *TokenService) GenerateTokenPair(userID string) (*TokenPair, error) {
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(15 * time.Minute)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 			NotBefore: jwt.NewNumericDate(time.Now()),
-			Issuer:    "objexrg-backend",
+			Issuer:    "objexrg",
 			Subject:   userID,
 		},
 		TokenType: "access",
@@ -88,7 +88,7 @@ func (ts *TokenService) GenerateTokenPair(userID string) (*TokenPair, error) {
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(refreshExpiresAt),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
-			Issuer:    "objexrg-backend",
+			Issuer:    "objexrg",
 			Subject:   userID,
 			ID:        refreshJTI,
 		},

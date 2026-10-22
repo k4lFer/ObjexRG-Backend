@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"strings"
 
-	"objexrg-backend/internal/services/auth"
-	common_result "objexrg-backend/internal/shared/common"
+	"objexrg/internal/services/auth"
+	common_result "objexrg/internal/shared/common"
 
 	"github.com/gin-gonic/gin"
 )

@@ -4,7 +4,7 @@ import (
 	"errors"
 	"time"
 
-	"objexrg-backend/internal/models/auth"
+	"objexrg/internal/models/auth"
 
 	"gorm.io/gorm"
 )

@@ -2,10 +2,10 @@ package user_handler
 
 import (
 	"net/http"
-	"objexrg-backend/internal/dtos/user/output/response"
-	"objexrg-backend/internal/dtos/user/input"
-	user_service "objexrg-backend/internal/services/user"
-	common_result "objexrg-backend/internal/shared/common"
+	"objexrg/internal/dtos/user/output/response"
+	"objexrg/internal/dtos/user/input"
+	user_service "objexrg/internal/services/user"
+	common_result "objexrg/internal/shared/common"
 
 	"github.com/gin-gonic/gin"
 )

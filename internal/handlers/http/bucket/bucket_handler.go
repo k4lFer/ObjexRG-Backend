@@ -3,22 +3,20 @@ package bucket_handler
 import (
 	"net/http"
 
-	"objexrg-backend/internal/dtos/bucket/input"
-	bucket_response "objexrg-backend/internal/dtos/bucket/output/response"
-	"objexrg-backend/internal/interfaces"
-	bucketsvc "objexrg-backend/internal/services/bucket"
-	common_result "objexrg-backend/internal/shared/common"
+	"objexrg/internal/dtos/bucket/input"
+	"objexrg/internal/dtos/bucket/output/response"
+	bucketsvc "objexrg/internal/services/bucket"
+	common_result "objexrg/internal/shared/common"
 
 	"github.com/gin-gonic/gin"
 )
 
 type BucketHandler struct {
-	svc     *bucketsvc.BucketService
-	storage interfaces.StorageInterface
+	svc *bucketsvc.BucketService
 }
 
-func NewBucketHandler(svc *bucketsvc.BucketService, storage interfaces.StorageInterface) *BucketHandler {
-	return &BucketHandler{svc: svc, storage: storage}
+func NewBucketHandler(svc *bucketsvc.BucketService) *BucketHandler {
+	return &BucketHandler{svc: svc}
 }
 
 // CreateBucket godoc
@@ -54,7 +52,7 @@ func (h *BucketHandler) CreateBucket(c *gin.Context) {
 		return
 	}
 
-	data := bucket_response.CreateBucketResponse{
+	data := response.CreateBucketResponse{
 		Bucket: req.Name,
 		User:   userID.(string),
 	}
@@ -145,7 +143,7 @@ func (h *BucketHandler) ListBuckets(c *gin.Context) {
 		return
 	}
 
-	data := bucket_response.BucketsListResponse {
+	data := response.BucketsListResponse {
 		Buckets: buckets,
 	}
 
@@ -187,7 +185,7 @@ func (h *BucketHandler) ListObjects(c *gin.Context) {
 		return
 	}
 
-	data := bucket_response.ObjectsListResponse{
+	data := response.ObjectsListResponse{
 		Bucket:  name,
 		Objects: objects,
 	}
@@ -250,7 +248,7 @@ func (h *BucketHandler) ListStorage(c *gin.Context) {
 		return
 	}
 
-	data := bucket_response.ObjectsListResponse{
+	data := response.ObjectsListResponse{
 		Bucket:  name,
 		Objects: objects,
 	}
@@ -259,8 +257,8 @@ func (h *BucketHandler) ListStorage(c *gin.Context) {
 	c.JSON(res.Code, res)
 }
 
-func RegisterBucketRoutes(r *gin.RouterGroup, svc *bucketsvc.BucketService, storage interfaces.StorageInterface) {
-	handler := NewBucketHandler(svc, storage)
+func RegisterBucketRoutes(r *gin.RouterGroup, svc *bucketsvc.BucketService) {
+	handler := NewBucketHandler(svc)
 	r.POST("", handler.CreateBucket)
 	r.DELETE("/:bucket", handler.DeleteBucket)
 	r.GET("", handler.ListBuckets)

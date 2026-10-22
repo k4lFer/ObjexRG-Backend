@@ -1,4 +1,4 @@
-package bucket_response
+package response
 
 type CreateBucketResponse struct {
 	Bucket string `json:"bucket"`

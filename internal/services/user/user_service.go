@@ -1,8 +1,8 @@
 package user_service
 
 import (
-	"objexrg-backend/internal/interfaces"
-	models "objexrg-backend/internal/models/auth"
+	"objexrg/internal/interfaces"
+	models "objexrg/internal/models/auth"
 
 	"gorm.io/gorm"
 )

@@ -2,7 +2,7 @@ package storage_repository
 
 import (
 	"errors"
-	storage_models "objexrg-backend/internal/models/storage"
+	storage_models "objexrg/internal/models/storage"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"

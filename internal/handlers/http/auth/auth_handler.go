@@ -3,11 +3,11 @@ package auth_handler
 import (
 	"net/http"
 
-	"objexrg-backend/internal/dtos/auth/input"
-	auth_response "objexrg-backend/internal/dtos/auth/response"
-	authsvc "objexrg-backend/internal/services/auth"
-	common_result "objexrg-backend/internal/shared/common"
-	authvalidators "objexrg-backend/internal/validators/auth"
+	"objexrg/internal/dtos/auth/input"
+	auth_response "objexrg/internal/dtos/auth/response"
+	authsvc "objexrg/internal/services/auth"
+	common_result "objexrg/internal/shared/common"
+	authvalidators "objexrg/internal/validators/auth"
 
 	"github.com/gin-gonic/gin"
 )

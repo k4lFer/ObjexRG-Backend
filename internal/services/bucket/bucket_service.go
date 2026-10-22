@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"time"
 
-	bucket_response "objexrg-backend/internal/dtos/bucket/output/response"
-	storage_repo "objexrg-backend/internal/infrastructure/repositories/storage"
-	"objexrg-backend/internal/interfaces"
-	storage_models "objexrg-backend/internal/models/storage"
+	"objexrg/internal/dtos/bucket/output/response"
+	storage_repo "objexrg/internal/infrastructure/repositories/storage"
+	"objexrg/internal/interfaces"
+	storage_models "objexrg/internal/models/storage"
 
 	"github.com/google/uuid"
 )
@@ -26,13 +26,17 @@ func (s *BucketService) CreateRootBucket(userID string) error {
 }
 
 func (s *BucketService) CreateSubBucket(userID, subBucketName string) error {
-	if s.bucket.BucketExists(userID, subBucketName) {
-		return fmt.Errorf("bucket %s already exists for user %s", subBucketName, userID)
-	}
-
 	ownerUUID, err := uuid.Parse(userID)
 	if err != nil {
 		return fmt.Errorf("invalid user ID: %w", err)
+	}
+
+	existing, err := s.repo.GetBucketByNameAndOwner(ownerUUID, subBucketName)
+	if err != nil {
+		return fmt.Errorf("failed to check bucket: %w", err)
+	}
+	if existing != nil {
+		return fmt.Errorf("bucket %s already exists for user %s", subBucketName, userID)
 	}
 
 	// Create DB Record first
@@ -47,7 +51,7 @@ func (s *BucketService) CreateSubBucket(userID, subBucketName string) error {
 		return fmt.Errorf("failed to save bucket in db: %w", err)
 	}
 
-	// Create FileSystem Directory
+	// Create the backing bucket/prefix (no-op for S3 drivers)
 	if err := s.bucket.CreateSubBucket(userID, subBucketName); err != nil {
 		// Rollback could be implemented here
 		s.repo.DeleteBucketByOwner(ownerUUID, subBucketName)
@@ -70,7 +74,7 @@ func (s *BucketService) DeleteSubBucket(userID, subBucketName string) error {
 	return s.bucket.DeleteSubBucket(userID, subBucketName)
 }
 
-func (s *BucketService) ListBuckets(userID string) ([]bucket_response.BucketInfo, error) {
+func (s *BucketService) ListBuckets(userID string) ([]response.BucketInfo, error) {
 	ownerUUID, err := uuid.Parse(userID)
 	if err != nil {
 		return nil, fmt.Errorf("invalid user ID: %w", err)
@@ -81,9 +85,9 @@ func (s *BucketService) ListBuckets(userID string) ([]bucket_response.BucketInfo
 		return nil, fmt.Errorf("failed to list buckets from db: %w", err)
 	}
 
-	var infos []bucket_response.BucketInfo
+	var infos []response.BucketInfo
 	for _, b := range dbBuckets {
-		infos = append(infos, bucket_response.BucketInfo{
+		infos = append(infos, response.BucketInfo{
 			ID:        b.ID.String(),
 			Name:      b.Name,
 			Status:    b.Status,
@@ -93,7 +97,7 @@ func (s *BucketService) ListBuckets(userID string) ([]bucket_response.BucketInfo
 	return infos, nil
 }
 
-func (s *BucketService) ListObjects(userID, bucketName string) ([]bucket_response.ObjectInfo, error) {
+func (s *BucketService) ListObjects(userID, bucketName string) ([]response.ObjectInfo, error) {
 	ownerUUID, err := uuid.Parse(userID)
 	if err != nil {
 		return nil, fmt.Errorf("invalid user ID: %w", err)
@@ -112,9 +116,9 @@ func (s *BucketService) ListObjects(userID, bucketName string) ([]bucket_respons
 		return nil, fmt.Errorf("failed to list objects from db: %w", err)
 	}
 
-	var infos []bucket_response.ObjectInfo
+	var infos []response.ObjectInfo
 	for _, obj := range dbObjects {
-		infos = append(infos, bucket_response.ObjectInfo{
+		infos = append(infos, response.ObjectInfo{
 			ID:        obj.ID.String(),
 			FileName:  obj.FileName,
 			SizeBytes: obj.SizeBytes,

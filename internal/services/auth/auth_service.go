@@ -3,12 +3,12 @@ package auth
 import (
 	"errors"
 	"fmt"
-	dtos "objexrg-backend/internal/dtos/auth/input"
+	dtos "objexrg/internal/dtos/auth/input"
 	"time"
 
-	"objexrg-backend/internal/interfaces"
-	models "objexrg-backend/internal/models/auth"
-	bucketsvc "objexrg-backend/internal/services/bucket"
+	"objexrg/internal/interfaces"
+	models "objexrg/internal/models/auth"
+	bucketsvc "objexrg/internal/services/bucket"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"

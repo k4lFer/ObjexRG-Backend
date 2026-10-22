@@ -62,6 +62,55 @@
                 }
             }
         },
+        "/auth/logout": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Revoke the provided refresh token so it can no longer be used",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Logout user",
+                "parameters": [
+                    {
+                        "description": "Refresh token to revoke",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/auth_input.LogoutRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/auth/refresh": {
             "post": {
                 "description": "Get a new access token using a refresh token",
@@ -381,6 +430,195 @@
                 }
             }
         },
+        "/bucket/{bucket}/objects/{filename}": {
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Delete a file from a bucket",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "objects"
+                ],
+                "summary": "Delete an object",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bucket name",
+                        "name": "bucket",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "File name",
+                        "name": "filename",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Toggle whether an object is publicly readable",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "objects"
+                ],
+                "summary": "Change object visibility",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bucket name",
+                        "name": "bucket",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "File name",
+                        "name": "filename",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Visibility payload (is_public)",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/response.ObjectVisibilityResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/bucket/{bucket}/objects/{filename}/link": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Return a presigned URL (S3) or the proxy download path (local) for an object",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "objects"
+                ],
+                "summary": "Get a direct URL for an object",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bucket name",
+                        "name": "bucket",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "File name",
+                        "name": "filename",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "inline or attachment",
+                        "name": "disposition",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/response.ObjectLinkResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/bucket/{bucket}/storage": {
             "get": {
                 "security": [
@@ -499,6 +737,50 @@
                 }
             }
         },
+        "/f/{id}": {
+            "get": {
+                "description": "Stream (or redirect to) a publicly shared object (no authentication required)",
+                "produces": [
+                    "application/octet-stream"
+                ],
+                "tags": [
+                    "public"
+                ],
+                "summary": "Read a public object",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Object ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "file"
+                        }
+                    },
+                    "302": {
+                        "description": "Redirect to presigned URL",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/s/{token}": {
             "get": {
                 "description": "Fetch a publicly shared file by its token",
@@ -527,6 +809,43 @@
                     },
                     "404": {
                         "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/share/list": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "View all generated shares by the user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "share"
+                ],
+                "summary": "List all shares",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/response.ShareListResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -624,7 +943,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "Upload a file to the specified bucket",
+                "description": "Upload a file to the specified bucket (proxy path)",
                 "consumes": [
                     "multipart/form-data"
                 ],
@@ -668,8 +987,172 @@
                             }
                         }
                     },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "413": {
+                        "description": "Request Entity Too Large",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
                     "500": {
                         "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/upload/{bucket}/finalize": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Validate and register an object uploaded directly to storage",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "upload"
+                ],
+                "summary": "Finalize a direct upload",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bucket name",
+                        "name": "bucket",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Finalize payload",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/storage_handler.finalizeUploadRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/response.ObjectUploadResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "413": {
+                        "description": "Request Entity Too Large",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/upload/{bucket}/presign": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Reserve a storage key and return a direct upload URL when the driver supports it",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "upload"
+                ],
+                "summary": "Request a presigned upload URL",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bucket name",
+                        "name": "bucket",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Upload intent",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/storage_handler.presignUploadRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/response.PresignUploadResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "413": {
+                        "description": "Request Entity Too Large",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -810,6 +1293,17 @@
                 }
             }
         },
+        "auth_input.LogoutRequest": {
+            "type": "object",
+            "required": [
+                "refresh_token"
+            ],
+            "properties": {
+                "refresh_token": {
+                    "type": "string"
+                }
+            }
+        },
         "auth_input.RefreshRequest": {
             "type": "object",
             "required": [
@@ -873,12 +1367,179 @@
                 }
             }
         },
+        "response.ObjectLinkResponse": {
+            "type": "object",
+            "properties": {
+                "disposition": {
+                    "type": "string"
+                },
+                "fileName": {
+                    "type": "string"
+                },
+                "url": {
+                    "type": "string"
+                }
+            }
+        },
+        "response.ObjectUploadResponse": {
+            "type": "object",
+            "properties": {
+                "bucket": {
+                    "type": "string"
+                },
+                "createdAt": {
+                    "type": "string"
+                },
+                "fileName": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "key": {
+                    "type": "string"
+                },
+                "mimeType": {
+                    "type": "string"
+                },
+                "sizeBytes": {
+                    "type": "integer"
+                },
+                "storageKey": {
+                    "type": "string"
+                }
+            }
+        },
+        "response.ObjectVisibilityResponse": {
+            "type": "object",
+            "properties": {
+                "bucket": {
+                    "type": "string"
+                },
+                "fileName": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "isPublic": {
+                    "type": "boolean"
+                },
+                "publicUrl": {
+                    "type": "string"
+                }
+            }
+        },
+        "response.PresignUploadResponse": {
+            "type": "object",
+            "properties": {
+                "fields": {
+                    "description": "Fields are the form fields to submit (plus the file) for a presigned POST.",
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "headers": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
+                "key": {
+                    "type": "string"
+                },
+                "method": {
+                    "type": "string"
+                },
+                "mode": {
+                    "type": "string"
+                },
+                "storageKey": {
+                    "type": "string"
+                },
+                "uploadUrl": {
+                    "type": "string"
+                }
+            }
+        },
+        "response.ShareItemResponse": {
+            "type": "object",
+            "properties": {
+                "bucket_name": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "download_count": {
+                    "type": "integer"
+                },
+                "expires_at": {
+                    "type": "string"
+                },
+                "file_name": {
+                    "type": "string"
+                },
+                "mime_type": {
+                    "type": "string"
+                },
+                "revoked": {
+                    "type": "boolean"
+                },
+                "size_bytes": {
+                    "type": "integer"
+                },
+                "token": {
+                    "type": "string"
+                },
+                "url": {
+                    "type": "string"
+                }
+            }
+        },
+        "response.ShareListResponse": {
+            "type": "object",
+            "properties": {
+                "details": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/response.ShareItemResponse"
+                    }
+                }
+            }
+        },
         "storage_handler.ShareRequest": {
             "type": "object",
             "properties": {
                 "expires_at": {
                     "type": "string",
-                    "example": "2026-07-07T00:00:00Z"
+                    "example": "2026-07-07T23:59:59Z"
+                }
+            }
+        },
+        "storage_handler.finalizeUploadRequest": {
+            "type": "object",
+            "properties": {
+                "fileName": {
+                    "type": "string"
+                },
+                "storageKey": {
+                    "type": "string"
+                }
+            }
+        },
+        "storage_handler.presignUploadRequest": {
+            "type": "object",
+            "properties": {
+                "fileName": {
+                    "type": "string"
+                },
+                "mimeType": {
+                    "type": "string"
+                },
+                "sizeBytes": {
+                    "type": "integer"
                 }
             }
         },

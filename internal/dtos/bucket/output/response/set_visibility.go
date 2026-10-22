@@ -1,4 +1,4 @@
-package bucket_response
+package response
 
 type ObjectVisibilityResponse struct {
 	ID        string `json:"id"`

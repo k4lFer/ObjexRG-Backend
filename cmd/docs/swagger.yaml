@@ -10,6 +10,13 @@ definitions:
     - email
     - password
     type: object
+  auth_input.LogoutRequest:
+    properties:
+      refresh_token:
+        type: string
+    required:
+    - refresh_token
+    type: object
   auth_input.RefreshRequest:
     properties:
       refresh_token:
@@ -56,11 +63,121 @@ definitions:
     required:
     - name
     type: object
+  response.ObjectLinkResponse:
+    properties:
+      disposition:
+        type: string
+      fileName:
+        type: string
+      url:
+        type: string
+    type: object
+  response.ObjectUploadResponse:
+    properties:
+      bucket:
+        type: string
+      createdAt:
+        type: string
+      fileName:
+        type: string
+      id:
+        type: string
+      key:
+        type: string
+      mimeType:
+        type: string
+      sizeBytes:
+        type: integer
+      storageKey:
+        type: string
+    type: object
+  response.ObjectVisibilityResponse:
+    properties:
+      bucket:
+        type: string
+      fileName:
+        type: string
+      id:
+        type: string
+      isPublic:
+        type: boolean
+      publicUrl:
+        type: string
+    type: object
+  response.PresignUploadResponse:
+    properties:
+      fields:
+        additionalProperties:
+          type: string
+        description: Fields are the form fields to submit (plus the file) for a presigned
+          POST.
+        type: object
+      headers:
+        additionalProperties:
+          type: string
+        type: object
+      key:
+        type: string
+      method:
+        type: string
+      mode:
+        type: string
+      storageKey:
+        type: string
+      uploadUrl:
+        type: string
+    type: object
+  response.ShareItemResponse:
+    properties:
+      bucket_name:
+        type: string
+      created_at:
+        type: string
+      download_count:
+        type: integer
+      expires_at:
+        type: string
+      file_name:
+        type: string
+      mime_type:
+        type: string
+      revoked:
+        type: boolean
+      size_bytes:
+        type: integer
+      token:
+        type: string
+      url:
+        type: string
+    type: object
+  response.ShareListResponse:
+    properties:
+      details:
+        items:
+          $ref: '#/definitions/response.ShareItemResponse'
+        type: array
+    type: object
   storage_handler.ShareRequest:
     properties:
       expires_at:
-        example: "2026-07-07T00:00:00Z"
+        example: "2026-07-07T23:59:59Z"
         type: string
+    type: object
+  storage_handler.finalizeUploadRequest:
+    properties:
+      fileName:
+        type: string
+      storageKey:
+        type: string
+    type: object
+  storage_handler.presignUploadRequest:
+    properties:
+      fileName:
+        type: string
+      mimeType:
+        type: string
+      sizeBytes:
+        type: integer
     type: object
   user_input.PatchMeRequest:
     properties:
@@ -133,6 +250,37 @@ paths:
               type: string
             type: object
       summary: Login user
+      tags:
+      - auth
+  /auth/logout:
+    post:
+      consumes:
+      - application/json
+      description: Revoke the provided refresh token so it can no longer be used
+      parameters:
+      - description: Refresh token to revoke
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/auth_input.LogoutRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "422":
+          description: Unprocessable Entity
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Logout user
       tags:
       - auth
   /auth/refresh:
@@ -342,6 +490,130 @@ paths:
       summary: List objects in a bucket
       tags:
       - buckets
+  /bucket/{bucket}/objects/{filename}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a file from a bucket
+      parameters:
+      - description: Bucket name
+        in: path
+        name: bucket
+        required: true
+        type: string
+      - description: File name
+        in: path
+        name: filename
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete an object
+      tags:
+      - objects
+    patch:
+      consumes:
+      - application/json
+      description: Toggle whether an object is publicly readable
+      parameters:
+      - description: Bucket name
+        in: path
+        name: bucket
+        required: true
+        type: string
+      - description: File name
+        in: path
+        name: filename
+        required: true
+        type: string
+      - description: Visibility payload (is_public)
+        in: body
+        name: request
+        required: true
+        schema:
+          additionalProperties: true
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.ObjectVisibilityResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Change object visibility
+      tags:
+      - objects
+  /bucket/{bucket}/objects/{filename}/link:
+    get:
+      description: Return a presigned URL (S3) or the proxy download path (local)
+        for an object
+      parameters:
+      - description: Bucket name
+        in: path
+        name: bucket
+        required: true
+        type: string
+      - description: File name
+        in: path
+        name: filename
+        required: true
+        type: string
+      - description: inline or attachment
+        in: query
+        name: disposition
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.ObjectLinkResponse'
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get a direct URL for an object
+      tags:
+      - objects
   /bucket/{bucket}/storage:
     get:
       consumes:
@@ -418,6 +690,36 @@ paths:
       summary: Download a file from a bucket
       tags:
       - download
+  /f/{id}:
+    get:
+      description: Stream (or redirect to) a publicly shared object (no authentication
+        required)
+      parameters:
+      - description: Object ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/octet-stream
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: file
+        "302":
+          description: Redirect to presigned URL
+          schema:
+            type: string
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Read a public object
+      tags:
+      - public
   /s/{token}:
     get:
       description: Fetch a publicly shared file by its token
@@ -495,11 +797,34 @@ paths:
       summary: Generate a share link for a file
       tags:
       - share
+  /share/list:
+    get:
+      consumes:
+      - application/json
+      description: View all generated shares by the user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.ShareListResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List all shares
+      tags:
+      - share
   /upload/{bucket}:
     post:
       consumes:
       - multipart/form-data
-      description: Upload a file to the specified bucket
+      description: Upload a file to the specified bucket (proxy path)
       parameters:
       - description: Bucket name
         in: path
@@ -525,6 +850,18 @@ paths:
             additionalProperties:
               type: string
             type: object
+        "409":
+          description: Conflict
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "413":
+          description: Request Entity Too Large
+          schema:
+            additionalProperties:
+              type: string
+            type: object
         "500":
           description: Internal Server Error
           schema:
@@ -534,6 +871,101 @@ paths:
       security:
       - BearerAuth: []
       summary: Upload a file to a bucket
+      tags:
+      - upload
+  /upload/{bucket}/finalize:
+    post:
+      consumes:
+      - application/json
+      description: Validate and register an object uploaded directly to storage
+      parameters:
+      - description: Bucket name
+        in: path
+        name: bucket
+        required: true
+        type: string
+      - description: Finalize payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/storage_handler.finalizeUploadRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/response.ObjectUploadResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "409":
+          description: Conflict
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "413":
+          description: Request Entity Too Large
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Finalize a direct upload
+      tags:
+      - upload
+  /upload/{bucket}/presign:
+    post:
+      consumes:
+      - application/json
+      description: Reserve a storage key and return a direct upload URL when the driver
+        supports it
+      parameters:
+      - description: Bucket name
+        in: path
+        name: bucket
+        required: true
+        type: string
+      - description: Upload intent
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/storage_handler.presignUploadRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.PresignUploadResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "409":
+          description: Conflict
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "413":
+          description: Request Entity Too Large
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Request a presigned upload URL
       tags:
       - upload
   /user/me:

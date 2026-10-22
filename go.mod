@@ -1,8 +1,11 @@
-module objexrg-backend
+module objexrg
 
 go 1.25.6
 
 require (
+	github.com/aws/aws-sdk-go-v2 v1.47.3
+	github.com/aws/aws-sdk-go-v2/credentials v1.20.9
+	github.com/aws/aws-sdk-go-v2/service/s3 v1.114.4
 	github.com/gin-gonic/gin v1.12.0
 	github.com/go-playground/validator/v10 v10.30.1
 	github.com/swaggo/files v1.0.1
@@ -13,7 +16,17 @@ require (
 	gorm.io/gorm v1.25.10
 )
 
-require github.com/gin-contrib/cors v1.7.7 // indirect
+require (
+	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.7.23 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/configsources v1.5.6 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.8.6 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/v4a v1.5.6 // indirect
+	github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.13.21 // indirect
+	github.com/aws/aws-sdk-go-v2/service/internal/checksum v1.11.7 // indirect
+	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.14.6 // indirect
+	github.com/aws/aws-sdk-go-v2/service/internal/s3shared v1.20.6 // indirect
+	github.com/aws/smithy-go v1.28.5 // indirect
+)
 
 require (
 	github.com/KyleBanks/depth v1.2.1 // indirect

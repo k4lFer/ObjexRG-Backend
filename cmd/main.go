@@ -1,9 +1,10 @@
 package main
 
 import (
+	"context"
 	"log"
 
-	_ "objexrg-backend/cmd/docs" // Import generated docs
+	_ "objexrg/cmd/docs" // Import generated docs
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -11,25 +12,27 @@ import (
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 
-	"objexrg-backend/internal/config"
+	"objexrg/internal/config"
 
-	auth_handler "objexrg-backend/internal/handlers/http/auth"
-	bucket_handler "objexrg-backend/internal/handlers/http/bucket"
-	storage_handler "objexrg-backend/internal/handlers/http/storage"
-	user_handler "objexrg-backend/internal/handlers/http/user"
-	"objexrg-backend/internal/infrastructure/database"
-	authrepository "objexrg-backend/internal/infrastructure/repositories/auth"
-	storage_repo "objexrg-backend/internal/infrastructure/repositories/storage"
-	"objexrg-backend/internal/infrastructure/storage"
-	"objexrg-backend/internal/middleware"
-	auth_models "objexrg-backend/internal/models/auth"
-	storage_models "objexrg-backend/internal/models/storage"
+	auth_handler "objexrg/internal/handlers/http/auth"
+	bucket_handler "objexrg/internal/handlers/http/bucket"
+	storage_handler "objexrg/internal/handlers/http/storage"
+	user_handler "objexrg/internal/handlers/http/user"
+	"objexrg/internal/infrastructure/blob"
+	"objexrg/internal/infrastructure/database"
+	authrepository "objexrg/internal/infrastructure/repositories/auth"
+	storage_repo "objexrg/internal/infrastructure/repositories/storage"
+	"objexrg/internal/infrastructure/storage"
+	"objexrg/internal/interfaces"
+	"objexrg/internal/middleware"
+	auth_models "objexrg/internal/models/auth"
+	storage_models "objexrg/internal/models/storage"
 
-	authsvc "objexrg-backend/internal/services/auth"
-	bucketsvc "objexrg-backend/internal/services/bucket"
-	services "objexrg-backend/internal/services/storage"
-	usersvc "objexrg-backend/internal/services/user"
-	authval "objexrg-backend/internal/validators/auth"
+	authsvc "objexrg/internal/services/auth"
+	bucketsvc "objexrg/internal/services/bucket"
+	services "objexrg/internal/services/storage"
+	usersvc "objexrg/internal/services/user"
+	authval "objexrg/internal/validators/auth"
 )
 
 // @title ObjexRG Backend API
@@ -59,11 +62,25 @@ func main() {
 	)
 
 	storageRepo := storage_repo.NewStorageRepository(db)
-	localStore := storage.NewLocalStorage(basePath)
-	bucketService := bucketsvc.NewBucketService(localStore, storageRepo)
-	uploadService := services.NewUploadService(localStore, storageRepo)
-	shareService := services.NewShareService(localStore, storageRepo)
-	objectService := services.NewObjectService(localStore, storageRepo)
+
+	blobStore, err := blob.NewBlobStore(context.Background(), cfg)
+	if err != nil {
+		panic("Failed to initialize storage: " + err.Error())
+	}
+
+	var bucketBackend interfaces.BucketInterface
+	if cfg.StorageDriver == blob.DriverS3 {
+		bucketBackend = storage.NewNoopBucketStorage()
+	} else {
+		bucketBackend = storage.NewLocalStorage(basePath)
+	}
+
+	bucketService := bucketsvc.NewBucketService(bucketBackend, storageRepo)
+	uploadService := services.NewUploadService(blobStore, storageRepo, cfg.MaxUploadBytes, cfg.PresignTTL)
+	shareService := services.NewShareService(storageRepo)
+	objectService := services.NewObjectService(blobStore, storageRepo, cfg.PresignTTL)
+
+	delivery := storage_handler.NewDelivery(blobStore, cfg.PresignTTL)
 
 	authRepo := authrepository.NewAuthRepository(db)
 	tokenService, err := authsvc.NewTokenService()
@@ -94,18 +111,18 @@ func main() {
 		user_handler.RegisterUserRoutes(userGroup, user_handler.NewUserHandler(userService))
 
 		bucketGroup := protected.Group("/bucket")
-		bucket_handler.RegisterBucketRoutes(bucketGroup, bucketService, localStore)
+		bucket_handler.RegisterBucketRoutes(bucketGroup, bucketService)
 
 		uploadGroup := protected.Group("/upload")
 		storage_handler.RegisterUploadRoutes(uploadGroup, storage_handler.NewUploadHandler(uploadService, cfg.MaxUploadBytes))
 
 		downloadGroup := protected.Group("/download")
-		storage_handler.RegisterDownloadRoutes(downloadGroup, uploadService)
+		storage_handler.RegisterDownloadRoutes(downloadGroup, storage_handler.NewDownloadHandler(objectService, delivery))
 
-		storage_handler.RegisterObjectRoutes(protected, storage_handler.NewObjectHandler(objectService))
+		storage_handler.RegisterObjectRoutes(protected, storage_handler.NewObjectHandler(objectService, delivery, cfg.PublicBaseURL))
 
-		storage_handler.RegisterShareRoutes(protected, router.Group("/"), storage_handler.NewShareHandler(shareService))
-		storage_handler.RegisterPublicObjectRoutes(router.Group("/"), storage_handler.NewObjectHandler(objectService))
+		storage_handler.RegisterShareRoutes(protected, router.Group("/"), storage_handler.NewShareHandler(shareService, delivery, cfg.PublicBaseURL))
+		storage_handler.RegisterPublicObjectRoutes(router.Group("/"), storage_handler.NewObjectHandler(objectService, delivery, cfg.PublicBaseURL))
 	}
 
 	if err := router.Run(":7080"); err != nil {

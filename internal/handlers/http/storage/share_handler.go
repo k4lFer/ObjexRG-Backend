@@ -4,19 +4,21 @@ import (
 	"net/http"
 	"time"
 
-	"objexrg-backend/internal/dtos/bucket/output/response"
-	"objexrg-backend/internal/services/storage"
-	common_result "objexrg-backend/internal/shared/common"
+	"objexrg/internal/dtos/bucket/output/response"
+	"objexrg/internal/services/storage"
+	common_result "objexrg/internal/shared/common"
 
 	"github.com/gin-gonic/gin"
 )
 
 type ShareHandler struct {
-	service *storage.ShareService
+	service       *storage.ShareService
+	delivery      *Delivery
+	publicBaseURL string
 }
 
-func NewShareHandler(service *storage.ShareService) *ShareHandler {
-	return &ShareHandler{service: service}
+func NewShareHandler(service *storage.ShareService, delivery *Delivery, publicBaseURL string) *ShareHandler {
+	return &ShareHandler{service: service, delivery: delivery, publicBaseURL: publicBaseURL}
 }
 
 type ShareRequest struct {
@@ -82,7 +84,7 @@ func (h *ShareHandler) Generate(c *gin.Context) {
 
 	data := map[string]string{
 		"token": token,
-		"url":   "/s/" + token,
+		"url":   absoluteURL(h.publicBaseURL, "/s/"+token),
 	}
 
 	res := common_result.Ok(&data, http.StatusCreated, "Share link generated successfully")
@@ -98,25 +100,22 @@ func (h *ShareHandler) Generate(c *gin.Context) {
 // @Success 200 {file} binary
 // @Failure 404 {object} map[string]string
 // @Router /s/{token} [get]
-func AccessSharedFile(svc *storage.ShareService) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		token := c.Param("token")
-		if token == "" {
-			res := common_result.Fail[any]("token required", http.StatusBadRequest)
-			c.JSON(res.Code, res)
-			return
-		}
-
-		stream, obj, err := svc.GetSharedObject(token)
-		if err != nil {
-			res := common_result.Fail[any]("not found or expired", http.StatusNotFound)
-			c.JSON(res.Code, res)
-			return
-		}
-		defer stream.Close()
-
-		serveObject(c, stream, obj.FileName, obj.MimeType, obj.CreatedAt, "inline")
+func (h *ShareHandler) AccessSharedFile(c *gin.Context) {
+	token := c.Param("token")
+	if token == "" {
+		res := common_result.Fail[any]("token required", http.StatusBadRequest)
+		c.JSON(res.Code, res)
+		return
 	}
+
+	obj, err := h.service.GetSharedObject(c.Request.Context(), token)
+	if err != nil {
+		res := common_result.Fail[any]("not found or expired", http.StatusNotFound)
+		c.JSON(res.Code, res)
+		return
+	}
+
+	h.delivery.Deliver(c, obj.OwnerID.String(), obj.Bucket.Name, obj, "inline")
 }
 
 // ListShares godoc
@@ -126,7 +125,7 @@ func AccessSharedFile(svc *storage.ShareService) gin.HandlerFunc {
 // @Accept json
 // @Produce json
 // @Security BearerAuth
-// @Success 200 {object} bucket_response.ShareListResponse
+// @Success 200 {object} response.ShareListResponse
 // @Failure 401 {object} map[string]string
 // @Router /share/list [get]
 func (h *ShareHandler) List(c *gin.Context) {
@@ -144,11 +143,11 @@ func (h *ShareHandler) List(c *gin.Context) {
 		return
 	}
 
-	details := make([]bucket_response.ShareItemResponse, 0)
+	details := make([]response.ShareItemResponse, 0)
 	for _, s := range shares {
-		details = append(details, bucket_response.ShareItemResponse{
+		details = append(details, response.ShareItemResponse{
 			TokenHash:     s.TokenHash,
-			Url:           "/s/" + s.TokenHash,
+			Url:           absoluteURL(h.publicBaseURL, "/s/"+s.TokenHash),
 			BucketName:    s.Object.Bucket.Name,
 			FileName:      s.Object.FileName,
 			MimeType:      s.Object.MimeType,
@@ -160,7 +159,7 @@ func (h *ShareHandler) List(c *gin.Context) {
 		})
 	}
 
-	dataList := bucket_response.ShareListResponse{Details: details}
+	dataList := response.ShareListResponse{Details: details}
 	res := common_result.Ok(&dataList, http.StatusOK, "Shares retrieved")
 	c.JSON(res.Code, res)
 }
@@ -180,5 +179,5 @@ func RegisterShareRoutes(r *gin.RouterGroup, public *gin.RouterGroup, svc *Share
 	// Protected route to list tokens
 	r.GET("/share/list", svc.List)
 	// Public route to access tokens
-	public.GET("/s/:token", AccessSharedFile(svc.service))
+	public.GET("/s/:token", svc.AccessSharedFile)
 }

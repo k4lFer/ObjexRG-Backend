@@ -1,4 +1,4 @@
-APP_NAME := objexrg-backend
+APP_NAME := objexrg
 MAIN := ./cmd/main.go
 BINARY := bin/$(APP_NAME)
 

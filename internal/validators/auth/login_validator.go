@@ -2,10 +2,10 @@ package authvalidators
 
 import (
 	"net/http"
-	dtos "objexrg-backend/internal/dtos/auth/input"
+	dtos "objexrg/internal/dtos/auth/input"
 
-	"objexrg-backend/internal/interfaces"
-	"objexrg-backend/internal/validators"
+	"objexrg/internal/interfaces"
+	"objexrg/internal/validators"
 
 	"github.com/go-playground/validator/v10"
 )
