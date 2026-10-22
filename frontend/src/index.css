@@ -1,0 +1,85 @@
+@import "tailwindcss";
+
+@theme {
+  --font-display: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", monospace;
+
+  --color-ink: #0e1413;
+  --color-graphite: #4b5753;
+  --color-muted: #828d87;
+  --color-paper: #eef0ec;
+  --color-surface: #ffffff;
+  --color-line: #d6dbd4;
+
+  --color-verdigris: #0f7a68;
+  --color-verdigris-dark: #0a5a4d;
+  --color-verdigris-tint: #dcefe9;
+
+  --color-copper: #b26b3b;
+  --color-copper-tint: #f4e6d8;
+
+  --color-brick: #a83b34;
+  --color-ok: #3c7a57;
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    margin: 0;
+    font-family: var(--font-sans);
+    background-color: var(--color-paper);
+    color: var(--color-ink);
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    color: var(--color-ink);
+  }
+
+  ::selection {
+    background: var(--color-verdigris);
+    color: #fff;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-verdigris);
+    outline-offset: 2px;
+  }
+}
+
+@layer utilities {
+  .font-display {
+    font-family: var(--font-display);
+  }
+
+  .bg-grid {
+    background-image:
+      linear-gradient(
+        to right,
+        color-mix(in srgb, var(--color-line) 65%, transparent) 1px,
+        transparent 1px
+      ),
+      linear-gradient(
+        to bottom,
+        color-mix(in srgb, var(--color-line) 65%, transparent) 1px,
+        transparent 1px
+      );
+    background-size: 34px 34px;
+  }
+
+  .text-balance {
+    text-wrap: balance;
+  }
+}
